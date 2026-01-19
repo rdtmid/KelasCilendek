@@ -10,8 +10,9 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
-  password?: string; // For mock auth
-  bio?: string; // New field for profile
+  password?: string; // Field password untuk login
+  phone?: string;    // Field nomor telepon
+  bio?: string;
 }
 
 export interface Curriculum {

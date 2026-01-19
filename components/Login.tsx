@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { MOCK_USERS } from '../constants';
 import { User } from '../types';
 import { Loader2, Lock, Mail, LogIn, AlertCircle } from 'lucide-react';
 
@@ -13,28 +12,34 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      const user = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (user) {
-        // Simple mock password check
-        if (password === '123456') {
-          onLogin(user);
-        } else {
-          setError('Password salah. (Gunakan: 123456)');
-          setLoading(false);
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                email: email.toLowerCase(),
+                password: password 
+            })
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Email atau Password salah.');
         }
-      } else {
-        setError('Email tidak terdaftar.');
+
+        const user = await res.json();
+        onLogin(user);
+
+    } catch (err: any) {
+        setError(err.message || 'Gagal masuk. Periksa koneksi.');
+    } finally {
         setLoading(false);
-      }
-    }, 1000);
+    }
   };
 
   return (
@@ -100,14 +105,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-             <p className="text-xs text-slate-400">
-               Demo Credentials:<br/>
-               budi@sekolah.id (Admin)<br/>
-               siti@sekolah.id (Guru)<br/>
-               dewi@student.id (Siswa)<br/>
-               Pass: 123456
-             </p>
+          <div className="mt-8 text-center bg-slate-50 p-4 rounded-lg border border-slate-100">
+             <p className="text-xs text-slate-500 font-semibold mb-2">Default Password (Reset):</p>
+             <div className="text-xs text-slate-400 space-y-1">
+               <p>Admin: budi@sekolah.id / <span className="font-mono text-slate-600">admin</span></p>
+               <p>Guru: siti@sekolah.id / <span className="font-mono text-slate-600">guru</span></p>
+               <p>Siswa: dewi@student.id / <span className="font-mono text-slate-600">siswa</span></p>
+             </div>
           </div>
         </div>
       </div>
