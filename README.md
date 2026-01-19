@@ -85,11 +85,11 @@ Anda bisa menggunakan `git clone` jika kode ada di GitHub, atau upload file manu
 
 ```bash
 # Contoh jika menggunakan git (ganti URL dengan repo Anda)
-# git clone https://github.com/username/didactic-board.git
-# cd didactic-board
+# git clone https://github.com/rdtmid/KelasCilendek.git
+# cd KelasCilendek
 
 # Jika upload manual, ekstrak dan masuk folder
-cd /path/to/didactic-board
+cd /path/to/KelasCilendek
 ```
 
 ### Langkah 4: Instalasi Dependencies & Konfigurasi
@@ -227,7 +227,7 @@ Aplikasi ini memiliki 3 hak akses (Role) berbeda. Gunakan akun demo berikut untu
 ---
 
 ## 📞 Support & Lisensi
-Dikembangkan oleh **EduAI Corp**.
+Dikembangkan oleh **RedTeam.ID**.
 Versi Aplikasi: 1.1.0
 
 Jika mengalami kendala teknis, silakan cek log server dengan perintah:
