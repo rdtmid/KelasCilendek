@@ -80,7 +80,7 @@ npm install
 ```
 
 ### Langkah 4: Konfigurasi Environment
-Buat file `.env`.
+Buat file `.env`. **PENTING:** Jangan tambahkan `NODE_ENV` di file ini agar build tidak error.
 ```bash
 nano .env
 ```
@@ -88,7 +88,6 @@ Isi dengan konfigurasi berikut:
 ```env
 PORT=3000
 API_KEY=MASUKKAN_GOOGLE_GEMINI_API_KEY_ANDA_DISINI
-NODE_ENV=production
 ```
 
 ### Langkah 5: Build & Run
@@ -98,8 +97,9 @@ Build aplikasi frontend dan jalankan server menggunakan PM2.
 npm run build
 
 # Install PM2 & Jalankan Server
+# Kita set env production melalui command line PM2
 sudo npm install -g pm2
-pm2 start server.js --name "didactic-board"
+pm2 start server.js --name "didactic-board" --env production
 pm2 startup
 pm2 save
 ```
