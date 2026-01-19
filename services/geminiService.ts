@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedMaterial, QuizQuestion } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateCurriculumTopics = async (
   subject: string,
@@ -11,8 +10,6 @@ export const generateCurriculumTopics = async (
   additionalContext: string,
   previousTopics: string = "" // Parameter baru untuk materi sebelumnya
 ): Promise<{ topic: string; description: string; sessionCount: number }[]> => {
-  if (!apiKey) throw new Error("API Key is missing");
-
   try {
     let promptText = `Buatkan daftar topik kurikulum untuk mata pelajaran "${subject}".`;
 
@@ -87,8 +84,6 @@ export const generateLessonMaterial = async (
   topic: string,
   level: string
 ): Promise<GeneratedMaterial> => {
-  if (!apiKey) throw new Error("API Key is missing");
-
   const prompt = `Buatkan materi pembelajaran lengkap untuk topik "${topic}" tingkat "${level}".
   Output harus mencakup konten penjelasan (sekitar 300 kata) dan 3 soal kuis pilihan ganda.`;
 
