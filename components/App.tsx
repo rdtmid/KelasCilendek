@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
-import { CurriculumGenerator } from './components/CurriculumGenerator';
-import { MaterialGenerator } from './components/MaterialGenerator';
-import { ClassManagement } from './components/ClassManagement';
-import { UserManagement } from './components/UserManagement';
-import { InteractiveClass } from './components/InteractiveClass';
-import { Login } from './components/Login';
-import { User, UserRole, ClassSession } from './types';
+import { Sidebar } from './Sidebar';
+import { Dashboard } from './Dashboard';
+import { CurriculumGenerator } from './CurriculumGenerator';
+import { MaterialGenerator } from './MaterialGenerator';
+import { ClassManagement } from './ClassManagement';
+import { UserManagement } from './UserManagement';
+import { InteractiveClass } from './InteractiveClass';
+import { Login } from './Login';
+import { User, UserRole, ClassSession } from '../types';
 import { Menu } from 'lucide-react';
-import { MOCK_CLASSES } from './constants';
+import { MOCK_CLASSES } from '../constants';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
