@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateLessonMaterial } from '../services/geminiService';
 import { GeneratedMaterial, Curriculum, User, UserRole } from '../types';
-import { BookOpen, FileText, CheckCircle, HelpCircle, Loader2, PlayCircle, List, Edit3, Printer, Mail, X, Send, Award, GraduationCap } from 'lucide-react';
+import { BookOpen, FileText, CheckCircle, HelpCircle, Loader2, PlayCircle, List, Edit3, Printer, Mail, X, Send, Award, GraduationCap, Eye, Calendar, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 
 interface MaterialGeneratorProps {
   currentUser?: User;
@@ -21,6 +21,9 @@ export const MaterialGenerator: React.FC<MaterialGeneratorProps> = ({ currentUse
   const [savedCurriculums, setSavedCurriculums] = useState<Curriculum[]>([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState('');
   const [selectedTopicIndex, setSelectedTopicIndex] = useState<number | ''>('');
+
+  // Curriculum Detail Modal State
+  const [viewingCurriculum, setViewingCurriculum] = useState<Curriculum | null>(null);
 
   // Email States
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -67,6 +70,20 @@ export const MaterialGenerator: React.FC<MaterialGeneratorProps> = ({ currentUse
       // Auto-fill topic based on selection
       setTopic(curr.modules[idx].topic);
     }
+  };
+
+  const handleQuickSelectTopic = (index: number) => {
+    if (!viewingCurriculum) return;
+    
+    // Ensure the correct curriculum is selected in the dropdown
+    if (selectedCurriculumId !== viewingCurriculum.id) {
+        setSelectedCurriculumId(viewingCurriculum.id);
+        setLevel(viewingCurriculum.level);
+    }
+
+    setSelectedTopicIndex(index);
+    setTopic(viewingCurriculum.modules[index].topic);
+    setViewingCurriculum(null); // Close modal
   };
 
   const handleGenerate = async () => {
@@ -216,6 +233,18 @@ export const MaterialGenerator: React.FC<MaterialGeneratorProps> = ({ currentUse
                       <option key={c.id} value={c.id}>{c.name} ({c.subject})</option>
                     ))}
                   </select>
+                  
+                  {selectedCurriculumId && (
+                    <button
+                        onClick={() => {
+                            const curr = savedCurriculums.find(c => c.id === selectedCurriculumId);
+                            setViewingCurriculum(curr || null);
+                        }}
+                        className="text-xs text-indigo-600 font-medium flex items-center gap-1 mt-2 hover:underline focus:outline-none"
+                    >
+                        <Eye size={12} /> Lihat Detail & Daftar Topik Lengkap
+                    </button>
+                  )}
                 </div>
 
                 <div>
@@ -480,6 +509,87 @@ export const MaterialGenerator: React.FC<MaterialGeneratorProps> = ({ currentUse
                 </div>
              </div>
           </div>
+        </div>
+      )}
+
+      {/* Curriculum Details Modal */}
+      {viewingCurriculum && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <List size={20} className="text-indigo-600" /> Detail Kurikulum: {viewingCurriculum.name}
+                    </h3>
+                    <button onClick={() => setViewingCurriculum(null)} className="text-slate-400 hover:text-slate-600">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="p-4 bg-white border-b border-slate-100 grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span className="block text-xs text-slate-500">Mata Pelajaran</span>
+                        <span className="font-semibold text-slate-800">{viewingCurriculum.subject}</span>
+                    </div>
+                    <div>
+                        <span className="block text-xs text-slate-500">Level</span>
+                        <span className="font-semibold text-slate-800">{viewingCurriculum.level}</span>
+                    </div>
+                    <div>
+                        <span className="block text-xs text-slate-500">Tanggal Mulai</span>
+                        <span className="font-semibold text-slate-800">{new Date(viewingCurriculum.startDate).toLocaleDateString('id-ID')}</span>
+                    </div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-0">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th className="p-3 w-16 text-center">No</th>
+                                <th className="p-3">Topik / Kegiatan</th>
+                                <th className="p-3 w-32 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {viewingCurriculum.modules.map((mod, idx) => (
+                                <tr key={idx} className={mod.isHoliday ? "bg-red-50" : "hover:bg-slate-50"}>
+                                    <td className="p-3 text-center text-slate-500">
+                                        {mod.isHoliday ? '-' : mod.day}
+                                    </td>
+                                    <td className="p-3">
+                                        {mod.isHoliday ? (
+                                            <div className="flex flex-col">
+                                                <span className="text-red-600 font-bold flex items-center gap-2">
+                                                    <AlertTriangle size={14} /> {mod.holidayName}
+                                                </span>
+                                                <span className="text-xs text-slate-500 italic">Libur Nasional</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-slate-800">{mod.topic}</span>
+                                                <span className="text-xs text-slate-500 line-clamp-1">{mod.description}</span>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="p-3 text-center">
+                                        {!mod.isHoliday && (
+                                            <button 
+                                                onClick={() => handleQuickSelectTopic(viewingCurriculum.modules.indexOf(mod))}
+                                                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-xs font-medium flex items-center justify-center gap-1 mx-auto transition-colors"
+                                            >
+                                                Pilih <ArrowRight size={12} />
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="p-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 text-center">
+                    Klik tombol "Pilih" untuk memuat topik ke dalam Generator Materi secara otomatis.
+                </div>
+            </div>
         </div>
       )}
     </div>

@@ -46,6 +46,7 @@ export interface ClassSession {
   startDate?: string;
   dayOfWeek?: number; // 1 (Mon) - 6 (Sat), 0 (Sun)
   totalMeetings?: number;
+  curriculumId?: string; // New field to link to a Curriculum
 }
 
 export interface QuizQuestion {
@@ -74,6 +75,21 @@ export interface Assignment {
   type: 'Tugas' | 'Kuis' | 'Proyek';
 }
 
+// --- POLL TYPES ---
+export interface PollOption {
+  id: string;
+  text: string;
+  count: number;
+}
+
+export interface PollData {
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+  isActive: boolean;
+  userVotedOptionId?: string; // To track if local user voted
+}
+
 export interface ChatMessage {
   id: string;
   senderId: string;
@@ -82,6 +98,7 @@ export interface ChatMessage {
   timestamp: string;
   isTeacher: boolean;
   role: UserRole;
+  pollData?: PollData; // Optional field for interactive elements
 }
 
 export interface SharedFile {

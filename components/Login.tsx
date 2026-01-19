@@ -46,7 +46,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <Lock size={24} />
             </div>
             <h1 className="text-2xl font-bold text-slate-800">Selamat Datang</h1>
-            <p className="text-slate-500 text-sm mt-1">Silakan masuk ke EduKurikulum AI</p>
+            <p className="text-slate-500 text-sm mt-1">Silakan masuk ke DidacticBoard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">

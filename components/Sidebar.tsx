@@ -17,7 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, curre
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT] },
     // Only Admin can create/manage Curriculum
-    { id: 'curriculum', label: 'Buat Kurikulum', icon: CalendarDays, roles: [UserRole.ADMIN] },
+    { id: 'curriculum', label: 'Kurikulum', icon: CalendarDays, roles: [UserRole.ADMIN] },
     { id: 'materials', label: 'Materi & AI', icon: BookOpen, roles: [UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT] },
     { id: 'classes', label: 'Manajemen Kelas', icon: GraduationCap, roles: [UserRole.ADMIN, UserRole.TEACHER] },
     { id: 'users', label: 'User Manajemen', icon: Users, roles: [UserRole.ADMIN] },
@@ -43,8 +43,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, curre
       `}>
         <div className="p-6 border-b border-slate-700 flex justify-between items-center">
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <span className="bg-blue-500 w-8 h-8 rounded-lg flex items-center justify-center">E</span>
-            EduKurikulum
+            <span className="bg-blue-500 w-8 h-8 rounded-lg flex items-center justify-center">D</span>
+            DidacticBoard
           </h1>
           <button onClick={closeMobileMenu} className="md:hidden text-slate-400 hover:text-white transition-colors">
             <X size={24} />

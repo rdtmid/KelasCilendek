@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
 import { ClassSession, User, UserRole, Assignment } from '../types';
 import { Users, BookOpen, CheckCircle, AlertCircle, Clock, Calendar, GraduationCap, TrendingUp, Award, List, Edit2, Camera, Upload, Send, X, MessageSquare, Check, FileText, ArrowRight } from 'lucide-react';
@@ -269,10 +269,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ classes, currentUser, onNa
     const [isTranscriptModalOpen, setIsTranscriptModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null); // For submission
     
+    // File input ref for profile photo
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [profileData, setProfileData] = useState({
         name: currentUser.name,
         email: currentUser.email,
-        bio: currentUser.bio || 'Siswa rajin dan berprestasi.'
+        bio: currentUser.bio || 'Siswa rajin dan berprestasi.',
+        avatar: currentUser.avatar
     });
 
     // Mock Task Submission State
@@ -300,6 +304,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ classes, currentUser, onNa
         const updatedUser = { ...currentUser, ...profileData };
         localStorage.setItem('edu_user', JSON.stringify(updatedUser));
         window.location.reload(); // Simple reload to reflect changes in parent
+    };
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileData(prev => ({ ...prev, avatar: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const triggerFileInput = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
     };
 
     const openTaskSubmission = (task: any) => {
@@ -497,8 +518,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ classes, currentUser, onNa
                         <div className="p-6 space-y-4">
                              <div className="flex justify-center mb-4">
                                 <div className="relative">
-                                    <img src={currentUser.avatar} className="w-24 h-24 rounded-full border-4 border-slate-100"/>
-                                    <div className="absolute bottom-0 right-0 bg-slate-800 text-white p-1 rounded-full border-2 border-white cursor-pointer"><Camera size={14}/></div>
+                                    <img src={profileData.avatar || currentUser.avatar} className="w-24 h-24 rounded-full border-4 border-slate-100 object-cover"/>
+                                    <button 
+                                        onClick={triggerFileInput}
+                                        className="absolute bottom-0 right-0 bg-slate-800 text-white p-1 rounded-full border-2 border-white cursor-pointer hover:bg-slate-700"
+                                        title="Ganti Foto"
+                                    >
+                                        <Camera size={14}/>
+                                    </button>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleAvatarChange} 
+                                        accept="image/*" 
+                                        className="hidden" 
+                                    />
                                 </div>
                              </div>
                              <div>

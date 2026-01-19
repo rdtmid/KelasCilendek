@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { generateCurriculumTopics } from '../services/geminiService';
 import { INDONESIAN_HOLIDAYS_2025 } from '../constants';
 import { CurriculumModule, Curriculum } from '../types';
-import { CalendarDays, Sparkles, AlertTriangle, Check, Loader2, GitBranch, History, Edit3, Save, Clock, Trash2, List, Plus, Layers, ArrowRight, CornerDownRight, Link, Eye, X, Info, Printer, Mail, Send } from 'lucide-react';
+import { CalendarDays, Sparkles, AlertTriangle, Check, Loader2, GitBranch, History, Edit3, Save, Clock, Trash2, List, Plus, Layers, ArrowRight, CornerDownRight, Link, Eye, X, Info, Printer, Mail, Send, BookOpen, GraduationCap } from 'lucide-react';
 
 const LEVEL_STAGES = [
   { id: 'Basic', label: '1. Basic', desc: 'Dasar & Pengenalan', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 checked:bg-emerald-600' },
@@ -11,10 +11,11 @@ const LEVEL_STAGES = [
   { id: 'Expert', label: '4. Expert', desc: 'Ahli & Studi Kasus Kompleks', color: 'bg-rose-50 border-rose-200 text-rose-700 checked:bg-rose-600' },
 ];
 
-export const CurriculumGenerator: React.FC = () => {
-  // Views: 'generator' | 'saved-list'
-  const [activeView, setActiveView] = useState<'generator' | 'saved-list'>('generator');
+interface CurriculumGeneratorProps {
+    onNavigate?: (tab: string) => void;
+}
 
+export const CurriculumGenerator: React.FC<CurriculumGeneratorProps> = ({ onNavigate }) => {
   // Input States
   const [subject, setSubject] = useState('');
   
@@ -49,6 +50,11 @@ export const CurriculumGenerator: React.FC = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, id: string | null, name: string}>({
+      isOpen: false, id: null, name: ''
+  });
 
   // Storage State (Simulating Backend)
   const [savedCurriculums, setSavedCurriculums] = useState<Curriculum[]>(() => {
@@ -283,7 +289,6 @@ export const CurriculumGenerator: React.FC = () => {
 
     setGeneratedModules([]); 
     setEditingCurriculumId(null);
-    setActiveView('saved-list'); 
   };
 
   const handleModuleChange = (index: number, field: keyof CurriculumModule, value: string | number) => {
@@ -292,9 +297,14 @@ export const CurriculumGenerator: React.FC = () => {
     setGeneratedModules(updated);
   };
 
-  const handleDeleteSaved = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus kurikulum ini secara permanen?")) {
-        setSavedCurriculums(prev => prev.filter(c => c.id !== id));
+  const handleDeleteClick = (id: string, name: string) => {
+    setDeleteModal({ isOpen: true, id, name });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteModal.id) {
+        setSavedCurriculums(prev => prev.filter(c => c.id !== deleteModal.id));
+        setDeleteModal({ isOpen: false, id: null, name: '' });
     }
   };
 
@@ -314,8 +324,17 @@ export const CurriculumGenerator: React.FC = () => {
     setEditingCurriculumId(curr.id);
     setIsEditing(true); // Automatically enable table editing
     
-    // Switch view
-    setActiveView('generator');
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleResetForm = () => {
+        setEditingCurriculumId(null);
+        setGeneratedModules([]);
+        setSubject('');
+        setSelectedLevels([]);
+        setRefCurriculumId('');
+        setPreviousTopics('');
   };
 
   // --- PRINT & EMAIL FUNCTIONALITY ---
@@ -393,48 +412,366 @@ export const CurriculumGenerator: React.FC = () => {
     }, 1500);
   };
 
-  // --- Views ---
+  return (
+    <div className="max-w-5xl mx-auto space-y-12 pb-12">
+      {/* SECTION 1: GENERATOR */}
+      <section className="space-y-6">
+        <header className="flex justify-between items-center">
+            <div>
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <CalendarDays className="text-blue-600" /> {editingCurriculumId ? 'Edit Kurikulum' : 'Generator Kurikulum Bertingkat'}
+                </h2>
+                <p className="text-slate-500">
+                    {editingCurriculumId 
+                        ? 'Mode Edit: Ubah detail pertemuan secara manual atau generate ulang.' 
+                        : 'Buat jadwal belajar berjenjang (Basic hingga Expert) secara otomatis.'}
+                </p>
+            </div>
+            {editingCurriculumId && (
+                <button 
+                    onClick={handleResetForm}
+                    className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                    <X size={16} className="inline mr-1"/> Batal Edit
+                </button>
+            )}
+        </header>
 
-  if (activeView === 'saved-list') {
-    return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            <header className="flex justify-between items-center">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            
+            {/* Form Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                    <Layers size={16} className="text-blue-600"/> Pilih Tingkatan Level (Bisa pilih lebih dari satu)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {LEVEL_STAGES.map((stage) => (
+                        <label 
+                            key={stage.id} 
+                            className={`relative flex flex-col p-4 border rounded-xl cursor-pointer transition-all hover:shadow-md ${selectedLevels.includes(stage.id) ? stage.color + ' ring-2 ring-offset-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300'}`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-sm">{stage.label}</span>
+                                <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 accent-blue-600"
+                                    checked={selectedLevels.includes(stage.id)}
+                                    onChange={() => handleLevelToggle(stage.id)}
+                                />
+                            </div>
+                            <span className="text-xs opacity-80">{stage.desc}</span>
+                        </label>
+                    ))}
+                </div>
+                {selectedLevels.length > 0 && (
+                    <div className="mt-3 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg flex items-center gap-2 animate-in fade-in">
+                        <span className="font-semibold text-slate-700">Alur Kurikulum:</span> 
+                        {selectedLevels.map((lvl, idx) => (
+                            <React.Fragment key={lvl}>
+                            <span className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-blue-700">{lvl}</span>
+                            {idx < selectedLevels.length - 1 && <ArrowRight size={14} className="text-slate-400"/>}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran</label>
+                <input 
+                type="text" 
+                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Contoh: Digital Marketing"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                />
+            </div>
+            
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Total Pertemuan (Semua Level)</label>
+                <input 
+                type="number" 
+                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                />
+                {estimatedEndDate && !dateError && (
+                    <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                        <Check size={12}/> Estimasi Selesai: {estimatedEndDate}
+                    </p>
+                )}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
+                <input 
+                type="date" 
+                className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none ${dateError ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-300'}`}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                />
+                {dateError && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1 animate-in slide-in-from-top-1">
+                        <AlertTriangle size={12}/> {dateError}
+                    </p>
+                )}
+            </div>
+            </div>
+
+            {/* Section Advanced / Lanjutan */}
+            <div className="space-y-4">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setIsAdvancedMode(!isAdvancedMode)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-300'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${isAdvancedMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                            <div>
+                                <label className="text-sm font-semibold text-slate-700 flex items-center gap-2 cursor-pointer" onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
+                                    <GitBranch size={16} className="text-blue-600"/> Lanjutan / Prerequisite
+                                </label>
+                                <p className="text-xs text-slate-500">Hubungkan dengan kurikulum sebelumnya (Continuation).</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                                <Clock size={14} /> Durasi Default (JP):
+                            </label>
+                            <input 
+                                type="number" 
+                                className="w-16 border border-slate-300 rounded p-1.5 text-sm text-center"
+                                value={defaultDuration}
+                                onChange={(e) => setDefaultDuration(Number(e.target.value))}
+                            />
+                        </div>
+                    </div>
+                    
+                    {isAdvancedMode && (
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1 flex items-center gap-2">
+                                    <Link size={14} /> Hubungkan Kurikulum Sebelumnya
+                                </label>
+                                <select 
+                                    className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                    value={refCurriculumId}
+                                    onChange={(e) => setRefCurriculumId(e.target.value)}
+                                >
+                                    <option value="">-- Pilih Kurikulum (Opsional) --</option>
+                                    {savedCurriculums.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name} ({c.totalDays} hari)</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    AI akan membaca topik dari kurikulum ini dan membuat kelanjutannya.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1 flex items-center gap-2">
+                                    <History size={14} /> Konteks Manual (Opsional)
+                                </label>
+                                <textarea 
+                                    className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-20"
+                                    placeholder="Tambahkan catatan khusus, misal: 'Siswa kesulitan di bagian Aljabar, tolong review sedikit'."
+                                    value={previousTopics}
+                                    onChange={(e) => setPreviousTopics(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <button 
+            onClick={handleGenerate}
+            disabled={loading || !subject || selectedLevels.length === 0 || !!dateError}
+            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+            {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
+            {loading ? (editingCurriculumId ? 'Sedang Re-Generate Kurikulum...' : 'Generate Kurikulum') : (editingCurriculumId ? 'Re-Generate dengan AI (Overwrite)' : 'Generate Kurikulum')}
+            </button>
+            {editingCurriculumId && (
+                <p className="text-center text-xs text-amber-600 mt-2">
+                    *Klik tombol di atas akan menimpa data edit saat ini dengan hasil AI baru.
+                </p>
+            )}
+        </div>
+
+        {/* Generated Result Preview */}
+        {generatedModules.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h3 className="font-semibold text-slate-800">Preview Jadwal Kurikulum</h3>
+                    <span className="text-xs text-slate-500">Total {generatedModules.filter(m => !m.isHoliday).length} pertemuan efektif.</span>
+                </div>
+                
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => handlePrint(`Kurikulum - ${subject}`)}
+                        className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-300"
+                        title="Cetak Kurikulum"
+                    >
+                        <Printer size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setShowEmailModal(true)}
+                        className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-300"
+                        title="Kirim via Email"
+                    >
+                        <Mail size={18} />
+                    </button>
+                    <div className="w-px h-8 bg-slate-300 mx-1"></div>
+                    <button 
+                        onClick={() => setIsEditing(!isEditing)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${isEditing ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        <Edit3 size={16} /> {isEditing ? 'Selesai Edit' : 'Edit'}
+                    </button>
+                    <button 
+                        onClick={handleSave}
+                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                        <Save size={18} /> {editingCurriculumId ? 'Simpan Perubahan' : 'Simpan Kurikulum'}
+                    </button>
+                </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-medium">
+                    <tr>
+                    <th className="p-4 w-16">Ke-</th>
+                    <th className="p-4 w-32">Tanggal</th>
+                    <th className="p-4 w-24">Durasi</th>
+                    <th className="p-4">Topik / Kegiatan</th>
+                    <th className="p-4">Deskripsi</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {generatedModules.map((mod, idx) => (
+                    <tr key={idx} className={mod.isHoliday ? "bg-red-50" : "hover:bg-slate-50 transition-colors"}>
+                        <td className="p-4 font-medium text-slate-600">
+                        {mod.isHoliday ? '-' : `${mod.day}`}
+                        </td>
+                        <td className="p-4 text-slate-600 whitespace-nowrap">
+                        {isEditing && !mod.isHoliday ? (
+                            <input 
+                                type="date"
+                                className="border border-slate-300 rounded px-2 py-1 w-full"
+                                value={mod.date}
+                                onChange={(e) => handleModuleChange(idx, 'date', e.target.value)}
+                            />
+                        ) : (
+                            new Date(mod.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                        )}
+                        </td>
+                        <td className="p-4">
+                            {isEditing && !mod.isHoliday ? (
+                                <div className="flex items-center gap-1">
+                                    <input 
+                                        type="number"
+                                        className="border border-slate-300 rounded px-2 py-1 w-12 text-center"
+                                        value={mod.duration || defaultDuration}
+                                        onChange={(e) => handleModuleChange(idx, 'duration', Number(e.target.value))}
+                                    /> JP
+                                </div>
+                            ) : (
+                                !mod.isHoliday && <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium"><Clock size={12}/> {mod.duration || defaultDuration} JP</span>
+                            )}
+                        </td>
+                        <td className="p-4">
+                        {mod.isHoliday ? (
+                            <span className="flex items-center gap-2 text-red-600 font-bold">
+                            <AlertTriangle size={16} /> {mod.topic}
+                            </span>
+                        ) : isEditing ? (
+                            <input 
+                                type="text"
+                                className="border border-slate-300 rounded px-2 py-1 w-full font-semibold text-slate-800"
+                                value={mod.topic}
+                                onChange={(e) => handleModuleChange(idx, 'topic', e.target.value)}
+                            />
+                        ) : (
+                            <span className="font-semibold text-slate-800 flex items-center gap-2">
+                                {mod.topic}
+                            </span>
+                        )}
+                        </td>
+                        <td className="p-4 text-slate-600">
+                            {isEditing && !mod.isHoliday ? (
+                                <textarea 
+                                    className="border border-slate-300 rounded px-2 py-1 w-full text-xs h-16"
+                                    value={mod.description}
+                                    onChange={(e) => handleModuleChange(idx, 'description', e.target.value)}
+                                />
+                            ) : mod.description}
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
+            </div>
+        )}
+      </section>
+
+      {/* SECTION 2: SAVED LIST */}
+      <section className="border-t border-slate-200 pt-10">
+          <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <List className="text-blue-600" /> Kurikulum Tersimpan
+                    <List className="text-indigo-600" /> Pustaka Kurikulum
                     </h2>
-                    <p className="text-slate-500">Daftar kurikulum yang telah dibuat dan disesuaikan.</p>
+                    <p className="text-slate-500">Kelola, integrasikan, dan gunakan kurikulum yang telah disimpan.</p>
                 </div>
-                <button 
-                    onClick={() => {
-                        setEditingCurriculumId(null);
-                        setGeneratedModules([]);
-                        setSubject('');
-                        setSelectedLevels([]);
-                        setRefCurriculumId('');
-                        setPreviousTopics('');
-                        setActiveView('generator');
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium"
-                >
-                    <Plus size={18}/> Buat Kurikulum Baru
-                </button>
-            </header>
+          </div>
 
-            <div className="grid gap-6">
+          <div className="grid gap-6">
                 {savedCurriculums.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-                        <p className="text-slate-500">Belum ada kurikulum yang disimpan.</p>
+                        <List size={48} className="mx-auto text-slate-300 mb-4"/>
+                        <p className="text-slate-500 font-medium">Belum ada kurikulum yang disimpan.</p>
+                        <p className="text-slate-400 text-sm">Gunakan generator di atas untuk membuat kurikulum baru.</p>
                     </div>
                 ) : (
                     savedCurriculums.map(curr => (
-                        <div key={curr.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div key={curr.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
                             <div className="flex flex-col md:flex-row justify-between items-start mb-4 gap-4">
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-800">{curr.name}</h3>
-                                    <p className="text-sm text-slate-500">Dibuat pada: {new Date(curr.createdAt || '').toLocaleDateString('id-ID')}</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="text-xl font-bold text-slate-800">{curr.name}</h3>
+                                        {curr.id === editingCurriculumId && (
+                                            <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded font-bold">Sedang Diedit</span>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-4 text-sm text-slate-500">
+                                        <span className="flex items-center gap-1"><CalendarDays size={14}/> {curr.totalDays} Pertemuan</span>
+                                        <span className="flex items-center gap-1"><Clock size={14}/> Mulai: {new Date(curr.startDate).toLocaleDateString('id-ID')}</span>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2 justify-end">
+                                    {/* Action Buttons */}
+                                    <button 
+                                        onClick={() => onNavigate && onNavigate('materials')}
+                                        className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-indigo-100"
+                                        title="Buat Materi Pembelajaran menggunakan AI berdasarkan kurikulum ini"
+                                    >
+                                        <BookOpen size={16}/> Buat Materi
+                                    </button>
+                                    <button 
+                                        onClick={() => onNavigate && onNavigate('classes')}
+                                        className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors border border-indigo-100"
+                                        title="Hubungkan kurikulum ini ke Kelas Aktif"
+                                    >
+                                        <GraduationCap size={16}/> Integrasi Kelas
+                                    </button>
+                                    <div className="w-px h-8 bg-slate-200 mx-1"></div>
                                     <button 
                                         onClick={() => setViewingCurriculum(curr)}
                                         className="text-slate-600 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
@@ -448,425 +785,40 @@ export const CurriculumGenerator: React.FC = () => {
                                         <Edit3 size={16}/> Edit
                                     </button>
                                     <button 
-                                        onClick={() => handleDeleteSaved(curr.id)} 
+                                        onClick={() => handleDeleteClick(curr.id, curr.name)} 
                                         className="text-red-500 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
                                     >
-                                        <Trash2 size={16}/> Hapus
+                                        <Trash2 size={16}/>
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex gap-4 mb-4 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                                <span className="flex items-center gap-1"><CalendarDays size={14}/> {curr.totalDays} Pertemuan</span>
-                                <span className="flex items-center gap-1"><Clock size={14}/> Mulai: {new Date(curr.startDate).toLocaleDateString('id-ID')}</span>
-                            </div>
                             
                             {/* Mini Preview of Modules */}
-                            <div className="border border-slate-100 rounded-lg overflow-hidden">
-                                <div className="bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">Topik Pembelajaran</div>
+                            <div className="border border-slate-100 rounded-lg overflow-hidden bg-slate-50/50">
+                                <div className="px-4 py-2 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">Preview Topik</div>
                                 <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
-                                    {curr.modules.filter(m => !m.isHoliday).map((m, idx) => (
-                                        <div key={idx} className="px-3 py-2 text-sm flex justify-between items-center hover:bg-slate-50">
-                                            <div className="flex items-center gap-2 flex-1">
-                                                {m.topic.includes('Part') && <CornerDownRight size={12} className="text-slate-400 ml-1" />}
-                                                <span className="truncate">{m.topic}</span>
+                                    {curr.modules.filter(m => !m.isHoliday).slice(0, 5).map((m, idx) => (
+                                        <div key={idx} className="px-4 py-2 text-sm flex justify-between items-center hover:bg-slate-50">
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                <span className="text-slate-400 font-mono text-xs w-6">{m.day}.</span>
+                                                {m.topic.includes('Part') && <CornerDownRight size={12} className="text-slate-400" />}
+                                                <span className="truncate text-slate-700">{m.topic}</span>
                                             </div>
-                                            <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">{m.duration} JP</span>
+                                            <span className="text-slate-400 text-xs ml-4 whitespace-nowrap">{m.duration} JP</span>
                                         </div>
                                     ))}
+                                    {curr.modules.filter(m => !m.isHoliday).length > 5 && (
+                                        <div className="px-4 py-2 text-xs text-center text-slate-400 italic">
+                                            ...dan {curr.modules.filter(m => !m.isHoliday).length - 5} topik lainnya.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
-
-            {/* Modal Detail View */}
-            {viewingCurriculum && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="font-bold text-slate-800 text-lg">{viewingCurriculum.name}</h3>
-                            <button onClick={() => setViewingCurriculum(null)} className="text-slate-400 hover:text-slate-600">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 overflow-y-auto">
-                            {/* Metadata */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Mata Pelajaran</span>
-                                    <span className="font-semibold text-slate-800">{viewingCurriculum.subject}</span>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Level</span>
-                                    <span className="font-semibold text-slate-800">{viewingCurriculum.level}</span>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Total Pertemuan</span>
-                                    <span className="font-semibold text-slate-800">{viewingCurriculum.totalDays} Hari</span>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Tanggal Mulai</span>
-                                    <span className="font-semibold text-slate-800">{new Date(viewingCurriculum.startDate).toLocaleDateString('id-ID')}</span>
-                                </div>
-                            </div>
-
-                            {/* Table */}
-                            <table className="w-full text-left text-sm border border-slate-200 rounded-lg overflow-hidden">
-                                <thead className="bg-slate-100 text-slate-600 font-semibold">
-                                    <tr>
-                                        <th className="p-3 w-12">No</th>
-                                        <th className="p-3 w-32">Tanggal</th>
-                                        <th className="p-3 w-24">Durasi</th>
-                                        <th className="p-3">Topik</th>
-                                        <th className="p-3">Deskripsi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {viewingCurriculum.modules.map((mod, idx) => (
-                                        <tr key={idx} className={mod.isHoliday ? "bg-red-50" : "hover:bg-slate-50"}>
-                                            <td className="p-3 text-slate-500">{mod.isHoliday ? '-' : mod.day}</td>
-                                            <td className="p-3 whitespace-nowrap">{new Date(mod.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</td>
-                                            <td className="p-3">{!mod.isHoliday && (mod.duration ? `${mod.duration} JP` : '-')}</td>
-                                            <td className="p-3">
-                                                {mod.isHoliday ? (
-                                                    <span className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle size={14}/> {mod.holidayName}</span>
-                                                ) : (
-                                                    <span className="font-medium text-slate-800">{mod.topic}</span>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-slate-600">{mod.description}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
-                            <button 
-                                onClick={() => {
-                                    handleEditSaved(viewingCurriculum);
-                                    setViewingCurriculum(null);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium"
-                            >
-                                <Edit3 size={16}/> Edit Kurikulum Ini
-                            </button>
-                            <button onClick={() => setViewingCurriculum(null)} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium">
-                                Tutup
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-  }
-
-  // Default Generator View
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <header className="flex justify-between items-center">
-        <div>
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <CalendarDays className="text-blue-600" /> {editingCurriculumId ? 'Edit Kurikulum' : 'Generator Kurikulum Bertingkat'}
-            </h2>
-            <p className="text-slate-500">
-                {editingCurriculumId 
-                    ? 'Mode Edit: Ubah detail pertemuan secara manual atau generate ulang.' 
-                    : 'Buat jadwal belajar berjenjang (Basic hingga Expert) secara otomatis.'}
-            </p>
-        </div>
-        <button 
-            onClick={() => setActiveView('saved-list')}
-            className="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 font-medium"
-        >
-            <List size={18}/> Lihat Tersimpan
-        </button>
-      </header>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        
-        {/* Form Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="md:col-span-3">
-             <label className="block text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-                <Layers size={16} className="text-blue-600"/> Pilih Tingkatan Level (Bisa pilih lebih dari satu)
-             </label>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {LEVEL_STAGES.map((stage) => (
-                    <label 
-                        key={stage.id} 
-                        className={`relative flex flex-col p-4 border rounded-xl cursor-pointer transition-all hover:shadow-md ${selectedLevels.includes(stage.id) ? stage.color + ' ring-2 ring-offset-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300'}`}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                             <span className="font-bold text-sm">{stage.label}</span>
-                             <input 
-                                type="checkbox" 
-                                className="w-5 h-5 accent-blue-600"
-                                checked={selectedLevels.includes(stage.id)}
-                                onChange={() => handleLevelToggle(stage.id)}
-                             />
-                        </div>
-                        <span className="text-xs opacity-80">{stage.desc}</span>
-                    </label>
-                ))}
-             </div>
-             {selectedLevels.length > 0 && (
-                 <div className="mt-3 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg flex items-center gap-2 animate-in fade-in">
-                    <span className="font-semibold text-slate-700">Alur Kurikulum:</span> 
-                    {selectedLevels.map((lvl, idx) => (
-                        <React.Fragment key={lvl}>
-                           <span className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-blue-700">{lvl}</span>
-                           {idx < selectedLevels.length - 1 && <ArrowRight size={14} className="text-slate-400"/>}
-                        </React.Fragment>
-                    ))}
-                 </div>
-             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran</label>
-            <input 
-              type="text" 
-              className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Contoh: Digital Marketing"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Total Pertemuan (Semua Level)</label>
-            <input 
-              type="number" 
-              className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-            />
-            {estimatedEndDate && !dateError && (
-                 <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                    <Check size={12}/> Estimasi Selesai: {estimatedEndDate}
-                 </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
-            <input 
-              type="date" 
-              className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none ${dateError ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-300'}`}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            {dateError && (
-                <p className="text-xs text-red-600 mt-1 flex items-center gap-1 animate-in slide-in-from-top-1">
-                    <AlertTriangle size={12}/> {dateError}
-                </p>
-            )}
-          </div>
-        </div>
-
-        {/* Section Advanced / Lanjutan */}
-        <div className="space-y-4">
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-300'}`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${isAdvancedMode ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                        <div>
-                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2 cursor-pointer" onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
-                                <GitBranch size={16} className="text-blue-600"/> Lanjutan / Prerequisite
-                            </label>
-                            <p className="text-xs text-slate-500">Hubungkan dengan kurikulum sebelumnya (Continuation).</p>
-                        </div>
-                     </div>
-
-                     <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
-                            <Clock size={14} /> Durasi Default (JP):
-                        </label>
-                        <input 
-                            type="number" 
-                            className="w-16 border border-slate-300 rounded p-1.5 text-sm text-center"
-                            value={defaultDuration}
-                            onChange={(e) => setDefaultDuration(Number(e.target.value))}
-                        />
-                     </div>
-                </div>
-                
-                {isAdvancedMode && (
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-1 flex items-center gap-2">
-                                <Link size={14} /> Hubungkan Kurikulum Sebelumnya
-                            </label>
-                            <select 
-                                className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                value={refCurriculumId}
-                                onChange={(e) => setRefCurriculumId(e.target.value)}
-                            >
-                                <option value="">-- Pilih Kurikulum (Opsional) --</option>
-                                {savedCurriculums.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.totalDays} hari)</option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-slate-500 mt-1">
-                                AI akan membaca topik dari kurikulum ini dan membuat kelanjutannya.
-                            </p>
-                        </div>
-                        
-                        <div>
-                             <label className="block text-sm font-medium text-slate-600 mb-1 flex items-center gap-2">
-                                <History size={14} /> Konteks Manual (Opsional)
-                             </label>
-                             <textarea 
-                                 className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-20"
-                                 placeholder="Tambahkan catatan khusus, misal: 'Siswa kesulitan di bagian Aljabar, tolong review sedikit'."
-                                 value={previousTopics}
-                                 onChange={(e) => setPreviousTopics(e.target.value)}
-                             />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-
-        <button 
-          onClick={handleGenerate}
-          disabled={loading || !subject || selectedLevels.length === 0 || !!dateError}
-          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
-          {loading ? (editingCurriculumId ? 'Sedang Re-Generate Kurikulum...' : 'Generate Kurikulum') : (editingCurriculumId ? 'Re-Generate dengan AI (Overwrite)' : 'Generate Kurikulum')}
-        </button>
-        {editingCurriculumId && (
-            <p className="text-center text-xs text-amber-600 mt-2">
-                *Klik tombol di atas akan menimpa data edit saat ini dengan hasil AI baru.
-            </p>
-        )}
-      </div>
-
-      {generatedModules.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h3 className="font-semibold text-slate-800">Preview Jadwal Kurikulum</h3>
-                <span className="text-xs text-slate-500">Total {generatedModules.filter(m => !m.isHoliday).length} pertemuan efektif.</span>
-            </div>
-            
-            <div className="flex gap-2">
-                <button 
-                    onClick={() => handlePrint(`Kurikulum - ${subject}`)}
-                    className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-300"
-                    title="Cetak Kurikulum"
-                >
-                    <Printer size={18} />
-                </button>
-                <button 
-                    onClick={() => setShowEmailModal(true)}
-                    className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-300"
-                    title="Kirim via Email"
-                >
-                    <Mail size={18} />
-                </button>
-                <div className="w-px h-8 bg-slate-300 mx-1"></div>
-                <button 
-                    onClick={() => setIsEditing(!isEditing)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${isEditing ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}`}
-                >
-                    <Edit3 size={16} /> {isEditing ? 'Selesai Edit' : 'Edit'}
-                </button>
-                <button 
-                    onClick={handleSave}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                >
-                    <Save size={18} /> {editingCurriculumId ? 'Simpan' : 'Simpan'}
-                </button>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-medium">
-                <tr>
-                  <th className="p-4 w-16">Ke-</th>
-                  <th className="p-4 w-32">Tanggal</th>
-                  <th className="p-4 w-24">Durasi</th>
-                  <th className="p-4">Topik / Kegiatan</th>
-                  <th className="p-4">Deskripsi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {generatedModules.map((mod, idx) => (
-                  <tr key={idx} className={mod.isHoliday ? "bg-red-50" : "hover:bg-slate-50 transition-colors"}>
-                    <td className="p-4 font-medium text-slate-600">
-                      {mod.isHoliday ? '-' : `${mod.day}`}
-                    </td>
-                    <td className="p-4 text-slate-600 whitespace-nowrap">
-                       {isEditing && !mod.isHoliday ? (
-                           <input 
-                             type="date"
-                             className="border border-slate-300 rounded px-2 py-1 w-full"
-                             value={mod.date}
-                             onChange={(e) => handleModuleChange(idx, 'date', e.target.value)}
-                           />
-                       ) : (
-                           new Date(mod.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                       )}
-                    </td>
-                    <td className="p-4">
-                        {isEditing && !mod.isHoliday ? (
-                            <div className="flex items-center gap-1">
-                                <input 
-                                    type="number"
-                                    className="border border-slate-300 rounded px-2 py-1 w-12 text-center"
-                                    value={mod.duration || defaultDuration}
-                                    onChange={(e) => handleModuleChange(idx, 'duration', Number(e.target.value))}
-                                /> JP
-                            </div>
-                        ) : (
-                            !mod.isHoliday && <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium"><Clock size={12}/> {mod.duration || defaultDuration} JP</span>
-                        )}
-                    </td>
-                    <td className="p-4">
-                      {mod.isHoliday ? (
-                        <span className="flex items-center gap-2 text-red-600 font-bold">
-                          <AlertTriangle size={16} /> {mod.topic}
-                        </span>
-                      ) : isEditing ? (
-                        <input 
-                            type="text"
-                            className="border border-slate-300 rounded px-2 py-1 w-full font-semibold text-slate-800"
-                            value={mod.topic}
-                            onChange={(e) => handleModuleChange(idx, 'topic', e.target.value)}
-                        />
-                      ) : (
-                        <span className="font-semibold text-slate-800 flex items-center gap-2">
-                             {mod.topic}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-slate-600">
-                        {isEditing && !mod.isHoliday ? (
-                             <textarea 
-                                className="border border-slate-300 rounded px-2 py-1 w-full text-xs h-16"
-                                value={mod.description}
-                                onChange={(e) => handleModuleChange(idx, 'description', e.target.value)}
-                             />
-                        ) : mod.description}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      </section>
 
       {/* Email Modal */}
       {showEmailModal && (
@@ -907,6 +859,125 @@ export const CurriculumGenerator: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-sm animate-in fade-in zoom-in duration-200">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-red-50 rounded-t-xl">
+                        <h3 className="font-bold text-red-800 flex items-center gap-2">
+                            <AlertTriangle size={18} className="text-red-600"/> Hapus Kurikulum?
+                        </h3>
+                        <button onClick={() => setDeleteModal({isOpen: false, id: null, name: ''})} className="text-slate-400 hover:text-slate-600">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="p-6 text-center">
+                        <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={24} />
+                        </div>
+                        <p className="text-slate-600 text-sm mb-2">Anda akan menghapus kurikulum:</p>
+                        <p className="font-bold text-slate-800 text-lg mb-4">{deleteModal.name}</p>
+                        <p className="text-xs text-slate-500 bg-slate-100 p-2 rounded">Tindakan ini tidak dapat dibatalkan.</p>
+                    </div>
+                    <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50 rounded-b-xl">
+                        <button 
+                            onClick={() => setDeleteModal({isOpen: false, id: null, name: ''})} 
+                            className="px-4 py-2 text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg text-sm font-medium transition-all"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            onClick={handleConfirmDelete} 
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm font-bold shadow-sm shadow-red-200"
+                        >
+                            Ya, Hapus Permanen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+      {/* Modal Detail View */}
+      {viewingCurriculum && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 className="font-bold text-slate-800 text-lg">{viewingCurriculum.name}</h3>
+                        <button onClick={() => setViewingCurriculum(null)} className="text-slate-400 hover:text-slate-600">
+                            <X size={24} />
+                        </button>
+                    </div>
+                    
+                    <div className="p-6 overflow-y-auto">
+                        {/* Metadata */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <div>
+                                <span className="text-xs text-slate-500 block">Mata Pelajaran</span>
+                                <span className="font-semibold text-slate-800">{viewingCurriculum.subject}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-slate-500 block">Level</span>
+                                <span className="font-semibold text-slate-800">{viewingCurriculum.level}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-slate-500 block">Total Pertemuan</span>
+                                <span className="font-semibold text-slate-800">{viewingCurriculum.totalDays} Hari</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-slate-500 block">Tanggal Mulai</span>
+                                <span className="font-semibold text-slate-800">{new Date(viewingCurriculum.startDate).toLocaleDateString('id-ID')}</span>
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <table className="w-full text-left text-sm border border-slate-200 rounded-lg overflow-hidden">
+                            <thead className="bg-slate-100 text-slate-600 font-semibold">
+                                <tr>
+                                    <th className="p-3 w-12">No</th>
+                                    <th className="p-3 w-32">Tanggal</th>
+                                    <th className="p-3 w-24">Durasi</th>
+                                    <th className="p-3">Topik</th>
+                                    <th className="p-3">Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {viewingCurriculum.modules.map((mod, idx) => (
+                                    <tr key={idx} className={mod.isHoliday ? "bg-red-50" : "hover:bg-slate-50"}>
+                                        <td className="p-3 text-slate-500">{mod.isHoliday ? '-' : mod.day}</td>
+                                        <td className="p-3 whitespace-nowrap">{new Date(mod.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</td>
+                                        <td className="p-3">{!mod.isHoliday && (mod.duration ? `${mod.duration} JP` : '-')}</td>
+                                        <td className="p-3">
+                                            {mod.isHoliday ? (
+                                                <span className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle size={14}/> {mod.holidayName}</span>
+                                            ) : (
+                                                <span className="font-medium text-slate-800">{mod.topic}</span>
+                                            )}
+                                        </td>
+                                        <td className="p-3 text-slate-600">{mod.description}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                        <button 
+                            onClick={() => {
+                                handleEditSaved(viewingCurriculum);
+                                setViewingCurriculum(null);
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium"
+                        >
+                            <Edit3 size={16}/> Edit Kurikulum Ini
+                        </button>
+                        <button onClick={() => setViewingCurriculum(null)} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

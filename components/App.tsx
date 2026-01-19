@@ -116,8 +116,8 @@ const App: React.FC = () => {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 w-full bg-slate-900 text-white p-4 z-30 flex justify-between items-center shadow-md">
         <h1 className="font-bold text-lg flex items-center gap-2">
-           <span className="bg-blue-500 w-6 h-6 rounded flex items-center justify-center text-xs">E</span>
-           EduKurikulum
+           <span className="bg-blue-500 w-6 h-6 rounded flex items-center justify-center text-xs">D</span>
+           DidacticBoard
         </h1>
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
